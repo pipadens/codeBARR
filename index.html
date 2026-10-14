@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>codeBARR & QR Studio PWA</title>
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#4f46e5">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans select-none">
+
+    <header class="bg-slate-900 border-b border-slate-800 px-4 py-3 flex justify-between items-center sticky top-0 z-50">
+        <div class="flex items-center gap-2">
+            <div class="bg-indigo-600 p-2 rounded-lg text-white font-bold text-lg">⚡</div>
+            <div>
+                <h1 class="font-bold text-lg leading-tight text-indigo-400">Barcode & QR Studio</h1>
+                <p class="text-xs text-slate-400">PWA 100% Offline</p>
+            </div>
+        </div>
+        <button id="installBtn" class="hidden bg-indigo-600 hover:bg-indigo-500 text-xs px-3 py-1.5 rounded-lg font-medium transition shadow-md cursor-pointer">
+            Instalar App
+        </button>
+    </header>
+
+    <nav class="flex border-b border-slate-800 bg-slate-900/50 backdrop-blur">
+        <button onclick="switchTab('generator')" id="tabGen" class="flex-1 py-3 text-center font-medium text-sm border-b-2 border-indigo-500 text-indigo-400 transition cursor-pointer">
+            🖨️ Generador
+        </button>
+        <button onclick="switchTab('scanner')" id="tabScan" class="flex-1 py-3 text-center font-medium text-sm border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition cursor-pointer">
+            📷 Escáner
+        </button>
+    </nav>
+
+    <main class="flex-1 max-w-xl w-full mx-auto p-4 pb-20">
+        
+        <section id="viewGenerator" class="space-y-4">
+            <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl space-y-4">
+                <h2 class="text-base font-semibold text-slate-200 flex items-center gap-2">
+                    <span>🛠️</span> Configuración del Código
+                </h2>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Formato</label>
+                    <select id="codeType" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-slate-200 text-sm focus:outline-none focus:border-indigo-500">
+                        <optgroup label="Códigos QR">
+                            <option value="qrcode">Código QR Standard</option>
+                        </optgroup>
+                        <optgroup label="Códigos de Barras Comerciales e Industriales">
+                            <option value="ean13">EAN-13 (13 dígitos - Retail)</option>
+                            <option value="ean8">EAN-8 (8 dígitos - Retail compacto)</option>
+                            <option value="upc">UPC-A (12 dígitos - EE.UU.)</option>
+                            <option value="code128">Code 128 (Universal Alfanumérico)</option>
+                            <option value="code39">Code 39 (Alfanumérico clásico)</option>
+                            <option value="itf14">ITF-14 (Logística / Cajas)</option>
+                        </optgroup>
+                    </select>
+                    <p id="formatHint" class="text-xs text-slate-500 mt-1">Introduce texto, URL o identificadores válidos para este formato.</p>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Contenido / Datos</label>
+                    <input type="text" id="inputText" value="7501055310825" placeholder="Ej: 7501055310825 o https://..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-slate-200 text-sm focus:outline-none focus:border-indigo-500 font-mono">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Color de Tinta</label>
+                        <input type="color" id="fgColor" value="#000000" class="w-full h-10 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer p-1">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Color de Fondo</label>
+                        <input type="color" id="bgColor" value="#ffffff" class="w-full h-10 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer p-1">
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-xl flex flex-col items-center justify-center gap-4">
+                <div class="bg-white p-6 rounded-xl shadow-inner min-w-[220px] min-h-[220px] flex items-center justify-center overflow-auto max-w-full">
+                    <canvas id="qrCanvas" class="max-w-full"></canvas>
+                    <svg id="barcodeSvg" class="max-w-full hidden"></svg>
+                </div>
+                <div id="errorMessage" class="text-xs text-rose-400 text-center hidden font-medium"></div>
+                <button id="downloadBtn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-3 rounded-xl transition shadow-lg shadow-indigo-600/20 text-sm flex items-center justify-center gap-2 cursor-pointer">
+                    <span>💾</span> Descargar Imagen (PNG)
+                </button>
+            </div>
+        </section>
+
+        <section id="viewScanner" class="space-y-4 hidden">
+            <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl space-y-4">
+                <h2 class="text-base font-semibold text-slate-200 flex items-center gap-2">
+                    <span>📷</span> Escáner Universal
+                </h2>
+                <p class="text-xs text-slate-400">Apunta con la cámara trasera de tu dispositivo o selecciona una imagen guardada.</p>
+                
+                <div id="reader" class="w-full bg-slate-950 rounded-xl overflow-hidden border border-slate-800 min-h-[260px] flex items-center justify-center"></div>
+                
+                <div class="flex gap-2">
+                    <input type="file" id="fileInput" accept="image/*" class="hidden">
+                    <button onclick="document.getElementById('fileInput').click()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium py-2.5 rounded-xl transition border border-slate-700 cursor-pointer">
+                        📁 Subir Imagen
+                    </button>
+                    <button id="restartScanBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium px-4 py-2.5 rounded-xl transition border border-slate-700 cursor-pointer">
+                        🔄 Reiniciar Cámara
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl space-y-3">
+                <label class="block text-xs font-medium text-slate-400">Código Detectado:</label>
+                <div class="flex gap-2">
+                    <input type="text" id="scanResult" readonly placeholder="Esperando lectura..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-slate-200 text-sm font-mono focus:outline-none">
+                    <button id="copyBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 rounded-xl font-medium text-sm transition shadow-lg shadow-emerald-600/20 cursor-pointer">
+                        Copiar
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="text-center py-4 text-xs text-slate-500 border-t border-slate-900">
+        Barcode & QR Studio • Sin servidores ni registros
+    </footer>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(err => console.log(err));
+            });
+        }
+
+        let deferredPrompt;
+        const installBtn = document.getElementById('installBtn');
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installBtn.classList.remove('hidden');
+        });
+        installBtn.addEventListener('click', async () => {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') {
+                installBtn.classList.add('hidden');
+            }
+            deferredPrompt = null;
+        });
+
+        function switchTab(tab) {
+            const genSec = document.getElementById('viewGenerator');
+            const scanSec = document.getElementById('viewScanner');
+            const tabGen = document.getElementById('tabGen');
+            const tabScan = document.getElementById('tabScan');
+
+            if (tab === 'generator') {
+                genSec.classList.remove('hidden');
+                scanSec.classList.add('hidden');
+                tabGen.className = "flex-1 py-3 text-center font-medium text-sm border-b-2 border-indigo-500 text-indigo-400 transition cursor-pointer";
+                tabScan.className = "flex-1 py-3 text-center font-medium text-sm border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition cursor-pointer";
+                stopScanner();
+            } else {
+                genSec.classList.add('hidden');
+                scanSec.classList.remove('hidden');
+                tabScan.className = "flex-1 py-3 text-center font-medium text-sm border-b-2 border-indigo-500 text-indigo-400 transition cursor-pointer";
+                tabGen.className = "flex-1 py-3 text-center font-medium text-sm border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition cursor-pointer";
+                startScanner();
+            }
+        }
+
+        const codeType = document.getElementById('codeType');
+        const inputText = document.getElementById('inputText');
+        const fgColor = document.getElementById('fgColor');
+        const bgColor = document.getElementById('bgColor');
+        const qrCanvas = document.getElementById('qrCanvas');
+        const barcodeSvg = document.getElementById('barcodeSvg');
+        const errorMessage = document.getElementById('errorMessage');
+        const formatHint = document.getElementById('formatHint');
+        const downloadBtn = document.getElementById('downloadBtn');
+
+        const hints = {
+            'qrcode': 'Introduce texto, URL o cualquier dato para tu código QR.',
+            'ean13': 'Requiere exactamente 13 dígitos numéricos (ej. 7501055310825).',
+            'ean8': 'Requiere exactamente 8 dígitos numéricos.',
+            'upc': 'Requiere exactamente 12 dígitos numéricos (UPC-A).',
+            'code128': 'Soporta texto alfanumérico universal y símbolos estándar.',
+            'code39': 'Soporta letras Mayúsculas (A-Z), números (0-9) y símbolos (-.$/+ %).',
+            'itf14': 'Requiere exactamente 14 dígitos numéricos para logística.'
+        };
+
+        codeType.addEventListener('change', () => {
+            formatHint.textContent = hints[codeType.value] || '';
+            if(codeType.value === 'ean13') inputText.value = '7501055310825';
+            else if(codeType.value === 'upc') inputText.value = '036000291452';
+            else if(codeType.value === 'ean8') inputText.value = '96385074';
+            else if(codeType.value === 'code128') inputText.value = 'PRODUCTO-12345';
+            else if(codeType.value === 'code39') inputText.value = 'ABC-12345';
+            else if(codeType.value === 'itf14') inputText.value = '17501055310822';
+            generateCode();
+        });
+
+        function generateCode() {
+            const type = codeType.value;
+            const text = inputText.value.trim();
+            const dark = fgColor.value;
+            const light = bgColor.value;
+            errorMessage.classList.add('hidden');
+            errorMessage.textContent = '';
+
+            if (!text) {
+                errorMessage.textContent = 'El campo de texto no puede estar vacío.';
+                errorMessage.classList.remove('hidden');
+                return;
+            }
+
+            if (type === 'qrcode') {
+                qrCanvas.classList.remove('hidden');
+                barcodeSvg.classList.add('hidden');
+                QRCode.toCanvas(qrCanvas, text, {
+                    color: { dark, light },
+                    width: 240,
+                    margin: 2
+                }, err => {
+                    if (err) {
+                        errorMessage.textContent = 'Error al generar QR: ' + err.message;
+                        errorMessage.classList.remove('hidden');
+                    }
+                });
+            } else {
+                qrCanvas.classList.add('hidden');
+                barcodeSvg.classList.remove('hidden');
+                
+                let jsBarcodeFormat = "CODE128";
+                if (type === 'ean13') jsBarcodeFormat = "EAN13";
+                else if (type === 'ean8') jsBarcodeFormat = "EAN8";
+                else if (type === 'upc') jsBarcodeFormat = "UPC";
+                else if (type === 'code39') jsBarcodeFormat = "CODE39";
+                else if (type === 'itf14') jsBarcodeFormat = "ITF14";
+
+                try {
+                    JsBarcode(barcodeSvg, text, {
+                        format: jsBarcodeFormat,
+                        lineColor: dark,
+                        background: light,
+                        width: 2,
+                        height: 90,
+                        displayValue: true,
+                        fontSize: 14,
+                        margin: 10
+                    });
+                } catch (e) {
+                    errorMessage.textContent = 'Formato inválido para ' + type.toUpperCase() + ': ' + e.message;
+                    errorMessage.classList.remove('hidden');
+                }
+            }
+        }
+
+        [codeType, inputText, fgColor, bgColor].forEach(el => {
+            el.addEventListener('input', generateCode);
+            el.addEventListener('change', generateCode);
+        });
+
+        downloadBtn.addEventListener('click', () => {
+            const type = codeType.value;
+            let link = document.createElement('a');
+            link.download = `codigo_${type}_${Date.now()}.png`;
+
+            if (type === 'qrcode') {
+                link.href = qrCanvas.toDataURL('image/png');
+                link.click();
+            } else {
+                const svgData = new XMLSerializer().serializeToString(barcodeSvg);
+                const svgBlob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
+                const URL = window.URL || window.webkitURL || window;
+                const blobURL = URL.createObjectURL(svgBlob);
+                
+                const image = new Image();
+                image.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = image.width || 300;
+                    canvas.height = image.height || 150;
+                    const context = canvas.getContext('2d');
+                    context.fillStyle = bgColor.value;
+                    context.fillRect(0, 0, canvas.width, canvas.height);
+                    context.drawImage(image, 0, 0);
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                };
+                image.src = blobURL;
+            }
+        });
+
+        let html5QrCode = null;
+        const scanResult = document.getElementById('scanResult');
+        const copyBtn = document.getElementById('copyBtn');
+        const fileInput = document.getElementById('fileInput');
+function startScanner() {
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("reader");
+            }
+            html5QrCode.start(
+                { facingMode: "environment" },
+                { fps: 15, qrbox: { width: 220, height: 220 } },
+                (decodedText) => {
+                    // 1. Muestra el texto en el cuadro de resultado
+                    scanResult.value = decodedText;
+                    
+                    // 2. Vibración háptica de confirmación (si el celular lo soporta)
+                    if (navigator.vibrate) navigator.vibrate(100);
+
+                    // 3. COPIA AUTOMÁTICA AL PORTAPAPELES
+                    navigator.clipboard.writeText(decodedText).then(() => {
+                        copyBtn.textContent = '¡Copiado automático!';
+                        copyBtn.classList.replace('bg-emerald-600', 'bg-indigo-600');
+                        setTimeout(() => {
+                            copyBtn.textContent = 'Copiar';
+                            copyBtn.classList.replace('bg-indigo-600', 'bg-emerald-600');
+                        }, 2000);
+                    }).catch(err => {
+                        console.error('No se pudo copiar automáticamente: ', err);
+                    });
+                },
+                (error) => {}
+            ).catch(err => {
+                console.log("Cámara no disponible:", err);
+            });
+        }
+      generateCode();
+    </script>
+</body>
+</html>
