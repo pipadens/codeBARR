@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Barcode & QR Studio Pro</title>
+    <title>Codebarr - Generador y Escáner</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#4f46e5">
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
@@ -15,10 +17,13 @@
         <div class="flex items-center gap-2">
             <div class="bg-indigo-600 p-2 rounded-lg text-white font-bold text-lg">⚡</div>
             <div>
-                <h1 class="font-bold text-lg leading-tight text-indigo-400">Barcode & QR Studio Pro</h1>
+                <h1 class="font-bold text-lg leading-tight text-indigo-400">Codebarr</h1>
                 <p class="text-xs text-slate-400">Generador, Escáner y Base de Datos SQLite</p>
             </div>
         </div>
+        <button id="installBtn" class="hidden bg-indigo-600 hover:bg-indigo-500 text-xs px-3 py-1.5 rounded-lg font-medium transition shadow-md cursor-pointer text-white">
+            📥 Instalar App
+        </button>
     </header>
 
     <nav class="flex border-b border-slate-800 bg-slate-900/50 backdrop-blur">
@@ -154,6 +159,25 @@
     </main>
 
     <script>
+        let deferredPrompt;
+        const installBtn = document.getElementById('installBtn');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installBtn.classList.remove('hidden');
+        });
+
+        installBtn.addEventListener('click', async () => {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') {
+                installBtn.classList.add('hidden');
+            }
+            deferredPrompt = null;
+        });
+
         function switchTab(tab) {
             const genSec = document.getElementById('viewGenerator');
             const scanSec = document.getElementById('viewScanner');
@@ -284,7 +308,6 @@
             });
         });
 
-        // Guardar manualmente en base de datos
         document.getElementById('saveDbBtn').addEventListener('click', async () => {
             const tipo = codeType.value;
             const contenido = inputText.value.trim();
@@ -302,11 +325,10 @@
             }
         });
 
-        // Descargar imagen PNG
         downloadBtn.addEventListener('click', () => {
             const type = codeType.value;
             let link = document.createElement('a');
-            link.download = `codigo_${type}_${Date.now()}.png`;
+            link.download = `codebarr_${type}_${Date.now()}.png`;
 
             if (type === 'qrcode') {
                 link.href = qrCanvas.toDataURL('image/png');
@@ -333,7 +355,6 @@
             }
         });
 
-        // Cargar registros de la base de datos
         async function cargarCodigos() {
             const res = await fetch('/api/codigos');
             const data = await res.json();
@@ -362,11 +383,10 @@
 
         async function borrarRegistro(id) {
             if (!confirm('¿Estás segura de eliminar este registro?')) return;
-            const res = await fetch(`/api/borrar/${id}`, { method: 'DELETE'});
+            const res = await fetch(`/api/borrar/${id}`, { method: 'DELETE' });
             if (res.ok) cargarCodigos();
         }
 
-        // Lógica de escaneo con auto-guardado
         let html5QrCode = null;
         const scanResult = document.getElementById('scanResult');
         const copyBtn = document.getElementById('copyBtn');
