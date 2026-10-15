@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Barcode & QR Studio Full-Stack</title>
+    <title>Barcode & QR Studio Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
@@ -15,8 +15,8 @@
         <div class="flex items-center gap-2">
             <div class="bg-indigo-600 p-2 rounded-lg text-white font-bold text-lg">⚡</div>
             <div>
-                <h1 class="font-bold text-lg leading-tight text-indigo-400">Barcode & QR Studio</h1>
-                <p class="text-xs text-slate-400">Flask + SQLite Base de Datos</p>
+                <h1 class="font-bold text-lg leading-tight text-indigo-400">Barcode & QR Studio Pro</h1>
+                <p class="text-xs text-slate-400">Generador, Escáner y Base de Datos SQLite</p>
             </div>
         </div>
     </header>
@@ -26,7 +26,7 @@
             🖨️ Generador y Base de Datos
         </button>
         <button onclick="switchTab('scanner')" id="tabScan" class="flex-1 py-3 text-center font-medium text-sm border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition cursor-pointer">
-            📷 Escáner con Auto-guardado
+            📷 Escáner e Imágenes
         </button>
     </nav>
 
@@ -36,41 +36,77 @@
         <section id="viewGenerator" class="space-y-4">
             <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl space-y-4">
                 <h2 class="text-base font-semibold text-slate-200 flex items-center gap-2">
-                    <span>🛠️</span> Crear y Almacenar
+                    <span>🛠️</span> Generador de Códigos (Barras y QR)
                 </h2>
 
                 <div>
-                    <label class="block text-xs font-medium text-slate-400 mb-1">Formato</label>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Seleccionar Formato</label>
                     <select id="codeType" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-slate-200 text-sm focus:outline-none focus:border-indigo-500">
-                        <option value="qrcode">Código QR Standard</option>
-                        <option value="url">URL Web (Almacenar enlaces)</option>
-                        <option value="ean13">EAN-13 (Retail)</option>
-                        <option value="code128">Code 128 (Alfanumérico)</option>
+                        <optgroup label="🌐 Códigos QR (URLs y Documentos)">
+                            <option value="qrcode">Código QR Standard</option>
+                        </optgroup>
+                        <optgroup label="🏷️ Códigos de Productos (Retail)">
+                            <option value="ean13">EAN-13 (13 dígitos - Productos)</option>
+                            <option value="ean8">EAN-8 (8 dígitos - Compacto)</option>
+                            <option value="upc">UPC-A (12 dígitos - EE.UU.)</option>
+                        </optgroup>
+                        <optgroup label="📄 Códigos de Documentos y Comerciales">
+                            <option value="code128">Code 128 (Universal alfanumérico)</option>
+                            <option value="code39">Code 39 (Clásico de oficina)</option>
+                        </optgroup>
+                        <optgroup label="📦 Cajas e Industrial">
+                            <option value="itf14">ITF-14 (14 dígitos - Cajas de envío)</option>
+                        </optgroup>
                     </select>
+                    <p id="formatHint" class="text-xs text-slate-500 mt-1">Genera códigos de barras o QR de forma inmediata.</p>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-medium text-slate-400 mb-1">Contenido / URL</label>
-                    <input type="text" id="inputText" value="https://miweb.com" placeholder="Introduce URL o datos..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-slate-200 text-sm focus:outline-none focus:border-indigo-500 font-mono">
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="text-xs font-medium text-slate-400">Contenido / Datos / URL</label>
+                        <button onclick="limpiarGenerador()" class="text-xs text-rose-400 hover:text-rose-300 transition cursor-pointer">🗑️ Limpiar campo</button>
+                    </div>
+                    <input type="text" id="inputText" value="https://miweb.com" placeholder="Introduce los datos..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-slate-200 text-sm focus:outline-none focus:border-indigo-500 font-mono">
                 </div>
 
-                <button id="saveDbBtn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-3 rounded-xl transition text-sm flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-600/20">
-                    <span>💾</span> Guardar URL / Código en Base de Datos
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Color de Tinta</label>
+                        <input type="color" id="fgColor" value="#000000" class="w-full h-10 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer p-1">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Color de Fondo</label>
+                        <input type="color" id="bgColor" value="#ffffff" class="w-full h-10 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer p-1">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 pt-2">
+                    <button id="copyGenBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium py-3 rounded-xl transition text-xs flex items-center justify-center gap-2 cursor-pointer border border-slate-700">
+                        📋 Copiar Contenido
+                    </button>
+                    <button id="saveDbBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-3 rounded-xl transition text-xs flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-600/20">
+                        💾 Guardar en BD
+                    </button>
+                </div>
+                <button id="downloadBtn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-3 rounded-xl transition text-sm flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-indigo-600/20">
+                    📥 Descargar Imagen PNG
                 </button>
             </div>
 
+            <!-- VISUALIZADOR -->
             <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-xl flex flex-col items-center justify-center gap-4">
-                <div class="bg-white p-6 rounded-xl shadow-inner min-w-[220px] min-h-[220px] flex items-center justify-center overflow-auto max-w-full">
-                    <canvas id="qrCanvas" class="max-w-full"></canvas>
-                    <svg id="barcodeSvg" class="max-w-full hidden"></svg>
+                <div class="bg-white p-6 rounded-xl shadow-inner min-w-[260px] min-h-[160px] flex items-center justify-center overflow-auto max-w-full">
+                    <canvas id="qrCanvas" class="max-w-full hidden"></canvas>
+                    <svg id="barcodeSvg" class="max-w-full"></svg>
                 </div>
+                <div id="errorMessage" class="text-xs text-rose-400 text-center hidden font-medium"></div>
             </div>
 
-            <!-- HISTORIAL / BASE DE DATOS -->
+            <!-- BASE DE DATOS -->
             <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl space-y-4">
                 <div class="flex justify-between items-center">
                     <h2 class="text-base font-semibold text-slate-200 flex items-center gap-2">
-                        <span>🗄️</span> Registros Almacenados
+                        <span>🗄️</span> Base de Datos (URLs, Productos y Escaneos)
                     </h2>
                     <button onclick="cargarCodigos()" class="text-xs bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg border border-slate-700 transition cursor-pointer">Actualizar</button>
                 </div>
@@ -84,16 +120,34 @@
         <section id="viewScanner" class="space-y-4 hidden">
             <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl space-y-4">
                 <h2 class="text-base font-semibold text-slate-200 flex items-center gap-2">
-                    <span>📷</span> Escáner con Guardado Automático
+                    <span>📷</span> Escáner Universal (Cámara, Tickets o Imágenes)
                 </h2>
-                <p class="text-xs text-slate-400">Todo código escaneado se guardará de inmediato en la base de datos.</p>
+                <p class="text-xs text-slate-400">Escanea códigos comerciales, de productos, documentos o QR. Todo se guarda automáticamente en la base de datos.</p>
                 
                 <div id="reader" class="w-full bg-slate-950 rounded-xl overflow-hidden border border-slate-800 min-h-[260px] flex items-center justify-center"></div>
+                
+                <div class="flex gap-2">
+                    <input type="file" id="fileInput" accept="image/*" class="hidden">
+                    <button onclick="document.getElementById('fileInput').click()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium py-2.5 rounded-xl transition border border-slate-700 cursor-pointer">
+                        📁 Subir Imagen / Ticket
+                    </button>
+                    <button id="restartScanBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium px-4 py-2.5 rounded-xl transition border border-slate-700 cursor-pointer">
+                        🔄 Reiniciar Cámara
+                    </button>
+                </div>
             </div>
 
             <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl space-y-3">
-                <label class="block text-xs font-medium text-slate-400">Último Código Detectado:</label>
-                <input type="text" id="scanResult" readonly placeholder="Esperando lectura..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-slate-200 text-sm font-mono focus:outline-none">
+                <div class="flex justify-between items-center">
+                    <label class="text-xs font-medium text-slate-400">Resultado Detectado:</label>
+                    <button onclick="limpiarEscaneo()" class="text-xs text-rose-400 hover:text-rose-300 transition cursor-pointer">🗑️ Limpiar barra</button>
+                </div>
+                <div class="flex gap-2">
+                    <input type="text" id="scanResult" readonly placeholder="Esperando lectura..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-slate-200 text-sm font-mono focus:outline-none">
+                    <button id="copyBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 rounded-xl font-medium text-sm transition shadow-lg shadow-emerald-600/20 cursor-pointer">
+                        Copiar
+                    </button>
+                </div>
             </div>
         </section>
 
@@ -124,30 +178,113 @@
 
         const codeType = document.getElementById('codeType');
         const inputText = document.getElementById('inputText');
+        const fgColor = document.getElementById('fgColor');
+        const bgColor = document.getElementById('bgColor');
         const qrCanvas = document.getElementById('qrCanvas');
         const barcodeSvg = document.getElementById('barcodeSvg');
+        const errorMessage = document.getElementById('errorMessage');
+        const formatHint = document.getElementById('formatHint');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const copyGenBtn = document.getElementById('copyGenBtn');
+
+        const hints = {
+            'qrcode': 'Introduce URLs, texto para documentos o enlaces web.',
+            'ean13': 'Requiere exactamente 13 dígitos numéricos para productos.',
+            'ean8': 'Requiere exactamente 8 dígitos numéricos.',
+            'upc': 'Requiere exactamente 12 dígitos numéricos.',
+            'code128': 'Soporta texto alfanumérico universal para documentos.',
+            'code39': 'Ideal para etiquetado clásico en documentos de oficina.',
+            'itf14': 'Requiere exactamente 14 dígitos numéricos para cajas.'
+        };
+
+        codeType.addEventListener('change', () => {
+            formatHint.textContent = hints[codeType.value] || '';
+            if(codeType.value === 'ean13') inputText.value = '7501055310825';
+            else if(codeType.value === 'upc') inputText.value = '036000291452';
+            else if(codeType.value === 'ean8') inputText.value = '96385074';
+            else if(codeType.value === 'code128') inputText.value = 'DOC-2026-001';
+            else if(codeType.value === 'code39') inputText.value = 'DOC-OFFICE';
+            else if(codeType.value === 'itf14') inputText.value = '17501055310822';
+            else if(codeType.value === 'qrcode') inputText.value = 'https://miweb.com';
+            generateCode();
+        });
+
+        function limpiarGenerador() {
+            inputText.value = '';
+            generateCode();
+        }
 
         function generateCode() {
             const type = codeType.value;
             const text = inputText.value.trim();
-            if (!text) return;
+            const dark = fgColor.value;
+            const light = bgColor.value;
+            errorMessage.classList.add('hidden');
+            errorMessage.textContent = '';
 
-            if (type === 'qrcode' || type === 'url') {
+            if (!text) {
+                qrCanvas.classList.add('hidden');
+                barcodeSvg.classList.add('hidden');
+                return;
+            }
+
+            if (type === 'qrcode') {
                 qrCanvas.classList.remove('hidden');
                 barcodeSvg.classList.add('hidden');
-                QRCode.toCanvas(qrCanvas, text, { width: 220, margin: 2 }, err => {});
+                QRCode.toCanvas(qrCanvas, text, {
+                    color: { dark, light },
+                    width: 220,
+                    margin: 2
+                }, err => {
+                    if (err) {
+                        errorMessage.textContent = 'Error al generar QR: ' + err.message;
+                        errorMessage.classList.remove('hidden');
+                    }
+                });
             } else {
                 qrCanvas.classList.add('hidden');
                 barcodeSvg.classList.remove('hidden');
+                
+                let jsBarcodeFormat = "CODE128";
+                if (type === 'ean13') jsBarcodeFormat = "EAN13";
+                else if (type === 'ean8') jsBarcodeFormat = "EAN8";
+                else if (type === 'upc') jsBarcodeFormat = "UPC";
+                else if (type === 'code39') jsBarcodeFormat = "CODE39";
+                else if (type === 'itf14') jsBarcodeFormat = "ITF14";
+
                 try {
-                    JsBarcode(barcodeSvg, text, { format: type.toUpperCase(), width: 2, height: 80, displayValue: true });
-                } catch (e) {}
+                    JsBarcode(barcodeSvg, text, {
+                        format: jsBarcodeFormat,
+                        lineColor: dark,
+                        background: light,
+                        width: 2,
+                        height: 80,
+                        displayValue: true,
+                        fontSize: 14,
+                        margin: 10
+                    });
+                } catch (e) {
+                    errorMessage.textContent = 'Formato inválido: Revisa los dígitos requeridos.';
+                    errorMessage.classList.remove('hidden');
+                }
             }
         }
 
-        [codeType, inputText].forEach(el => el.addEventListener('input', generateCode));
+        [codeType, inputText, fgColor, bgColor].forEach(el => {
+            el.addEventListener('input', generateCode);
+            el.addEventListener('change', generateCode);
+        });
 
-        // Guardar manualmente en la base de datos
+        copyGenBtn.addEventListener('click', () => {
+            const val = inputText.value.trim();
+            if (!val) return;
+            navigator.clipboard.writeText(val).then(() => {
+                copyGenBtn.textContent = '¡Copiado!';
+                setTimeout(() => copyGenBtn.textContent = '📋 Copiar Contenido', 2000);
+            });
+        });
+
+        // Guardar manualmente en base de datos
         document.getElementById('saveDbBtn').addEventListener('click', async () => {
             const tipo = codeType.value;
             const contenido = inputText.value.trim();
@@ -165,7 +302,38 @@
             }
         });
 
-        // Obtener registros de la base de datos
+        // Descargar imagen PNG
+        downloadBtn.addEventListener('click', () => {
+            const type = codeType.value;
+            let link = document.createElement('a');
+            link.download = `codigo_${type}_${Date.now()}.png`;
+
+            if (type === 'qrcode') {
+                link.href = qrCanvas.toDataURL('image/png');
+                link.click();
+            } else {
+                const svgData = new XMLSerializer().serializeToString(barcodeSvg);
+                const svgBlob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
+                const URL = window.URL || window.webkitURL || window;
+                const blobURL = URL.createObjectURL(svgBlob);
+                
+                const image = new Image();
+                image.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = image.width || 300;
+                    canvas.height = image.height || 150;
+                    const context = canvas.getContext('2d');
+                    context.fillStyle = bgColor.value;
+                    context.fillRect(0, 0, canvas.width, canvas.height);
+                    context.drawImage(image, 0, 0);
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                };
+                image.src = blobURL;
+            }
+        });
+
+        // Cargar registros de la base de datos
         async function cargarCodigos() {
             const res = await fetch('/api/codigos');
             const data = await res.json();
@@ -173,7 +341,7 @@
             list.innerHTML = '';
 
             if (data.length === 0) {
-                list.innerHTML = '<p class="text-xs text-slate-500 text-center py-4">No hay registros almacenados.</p>';
+                list.innerHTML = '<p class="text-xs text-slate-500 text-center py-4">No hay registros almacenados en la base de datos.</p>';
                 return;
             }
 
@@ -192,36 +360,46 @@
             });
         }
 
-        // Borrar registro de la base de datos
         async function borrarRegistro(id) {
             if (!confirm('¿Estás segura de eliminar este registro?')) return;
-            const res = await fetch(`/api/borrar/${id}`, { method: 'DELETE' });
-            if (res.ok) {
-                cargarCodigos();
-            }
+            const res = await fetch(`/api/borrar/${id}`, { method: 'DELETE'});
+            if (res.ok) cargarCodigos();
         }
 
+        // Lógica de escaneo con auto-guardado
         let html5QrCode = null;
         const scanResult = document.getElementById('scanResult');
+        const copyBtn = document.getElementById('copyBtn');
+        const fileInput = document.getElementById('fileInput');
+
+        function limpiarEscaneo() {
+            scanResult.value = '';
+        }
+
+        async function procesarTextoEscaneado(texto) {
+            scanResult.value = texto;
+            if (navigator.vibrate) navigator.vibrate(100);
+
+            await fetch('/api/guardar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tipo: 'escaneado', contenido: texto })
+            });
+            cargarCodigos();
+        }
 
         function startScanner() {
             if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
             html5QrCode.start(
                 { facingMode: "environment" },
                 { fps: 15, qrbox: { width: 220, height: 220 } },
-                async (decodedText) => {
-                    scanResult.value = decodedText;
-                    if (navigator.vibrate) navigator.vibrate(100);
-                    
-                    // Guarda el código escaneado automáticamente en la base de datos
-                    await fetch('/api/guardar', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ tipo: 'escaneado', contenido: decodedText })
-                    });
+                (decodedText) => {
+                    procesarTextoEscaneado(decodedText);
                 },
                 (error) => {}
-            ).catch(err => {});
+            ).catch(err => {
+                console.log("Cámara no disponible:", err);
+            });
         }
 
         function stopScanner() {
@@ -229,6 +407,37 @@
                 html5QrCode.stop().catch(err => {});
             }
         }
+
+        document.getElementById('restartScanBtn').addEventListener('click', () => {
+            stopScanner();
+            startScanner();
+        });
+
+        fileInput.addEventListener('change', e => {
+            if (e.target.files.length === 0) return;
+            const imageFile = e.target.files[0];
+            if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
+
+            html5QrCode.scanFile(imageFile, true)
+                .then(decodedText => {
+                    procesarTextoEscaneado(decodedText);
+                    alert('¡Código detectado y guardado con éxito desde la imagen!');
+                })
+                .catch(err => {
+                    alert("No se pudo detectar ningún código en la imagen seleccionada.");
+                });
+        });
+
+        copyBtn.addEventListener('click', () => {
+            if (!scanResult.value) {
+                alert('No hay ningún texto para copiar.');
+                return;
+            }
+            navigator.clipboard.writeText(scanResult.value).then(() => {
+                copyBtn.textContent = '¡Copiado!';
+                setTimeout(() => copyBtn.textContent = 'Copiar', 2000);
+            });
+        });
 
         generateCode();
         cargarCodigos();
